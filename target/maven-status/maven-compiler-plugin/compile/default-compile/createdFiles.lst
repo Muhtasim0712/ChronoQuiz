@@ -6,14 +6,15 @@ com\chronoquiz\ui\QuizView.class
 com\chronoquiz\util\JsonExporter.class
 com\chronoquiz\db\AttemptDAO.class
 com\chronoquiz\service\QuizTimerService.class
+com\chronoquiz\db\SettingsDAO.class
 com\chronoquiz\Launcher.class
 com\chronoquiz\model\Attempt.class
 com\chronoquiz\db\UserDAO.class
 com\chronoquiz\util\JsonImporter.class
 com\chronoquiz\model\Category.class
 com\chronoquiz\ui\NavigationManager.class
-com\chronoquiz\ui\StartView$CategoryItem.class
 com\chronoquiz\model\Difficulty.class
+com\chronoquiz\ui\AdminDashboardView$CategoryOption.class
 com\chronoquiz\api\ApiService.class
 com\chronoquiz\model\Quiz.class
 com\chronoquiz\ui\ResultsView.class
@@ -21,6 +22,7 @@ com\chronoquiz\ui\ReviewView.class
 com\chronoquiz\ui\HistoryView$HistoryDataPayload.class
 com\chronoquiz\api\ApiQuestion.class
 com\chronoquiz\db\CategoryDAO.class
+com\chronoquiz\ui\AdminDashboardView.class
 com\chronoquiz\Main.class
 com\chronoquiz\util\JsonExporter$QuestionJsonSerializer.class
 com\chronoquiz\db\QuestionDAO.class

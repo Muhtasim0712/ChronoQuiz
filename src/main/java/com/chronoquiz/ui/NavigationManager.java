@@ -89,4 +89,9 @@ public class NavigationManager {
         HistoryView view = new HistoryView();
         setRoot(view.getView());
     }
+
+    public void showAdminDashboard() {
+        AdminDashboardView view = new AdminDashboardView();
+        setRoot(view.getView());
+    }
 }

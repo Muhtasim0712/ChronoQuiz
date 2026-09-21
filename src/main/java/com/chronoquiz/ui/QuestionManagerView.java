@@ -63,9 +63,9 @@ public class QuestionManagerView {
         HBox topBox = new HBox(16);
         topBox.setAlignment(Pos.CENTER_LEFT);
 
-        Button backBtn = new Button("← Main Menu");
+        Button backBtn = new Button("← Admin Dashboard");
         backBtn.getStyleClass().addAll("button", "button-outline");
-        backBtn.setOnAction(e -> NavigationManager.getInstance().showStartScreen());
+        backBtn.setOnAction(e -> NavigationManager.getInstance().showAdminDashboard());
 
         VBox titleBox = new VBox(2);
         Label title = new Label("Question Bank Manager");
@@ -181,18 +181,21 @@ public class QuestionManagerView {
         textArea.setPromptText("Enter question prompt here...");
         textArea.setPrefRowCount(3);
         textArea.setWrapText(true);
+        textArea.setStyle("-fx-control-inner-background: #0b1329; -fx-text-fill: #ffffff; -fx-prompt-text-fill: #64748b; -fx-font-size: 14px; -fx-font-weight: 500;");
 
         // Correct Answer
         Label ansLbl = new Label("Primary Correct Answer:");
         ansLbl.getStyleClass().add("label-field");
         correctAnswerField = new TextField();
         correctAnswerField.setPromptText("Exact correct answer");
+        correctAnswerField.setStyle("-fx-control-inner-background: #0b1329; -fx-text-fill: #ffffff; -fx-prompt-text-fill: #64748b; -fx-font-size: 14px;");
 
         // Options or Accepted Answers
         optionsFieldLabel = new Label("Options (comma-separated):");
         optionsFieldLabel.getStyleClass().add("label-field");
         optionsOrAcceptedField = new TextField();
         optionsOrAcceptedField.setPromptText("Option 1, Option 2, Option 3, Option 4");
+        optionsOrAcceptedField.setStyle("-fx-control-inner-background: #0b1329; -fx-text-fill: #ffffff; -fx-prompt-text-fill: #64748b; -fx-font-size: 14px;");
 
         // Form Action Buttons
         HBox btnRow1 = new HBox(10);

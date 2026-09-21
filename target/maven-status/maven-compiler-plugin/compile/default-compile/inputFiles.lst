@@ -6,6 +6,7 @@ C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\db\AttemptDAO.jav
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\db\CategoryDAO.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\db\DatabaseManager.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\db\QuestionDAO.java
+C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\db\SettingsDAO.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\db\UserDAO.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\Launcher.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\Main.java
@@ -20,6 +21,7 @@ C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\model\Quiz.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\model\ShortAnswerQuestion.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\model\User.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\service\QuizTimerService.java
+C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\ui\AdminDashboardView.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\ui\HistoryView.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\ui\NavigationManager.java
 C:\Users\Nafij\Desktop\ChronoQuiz\src\main\java\com\chronoquiz\ui\QuestionManagerView.java

@@ -117,12 +117,44 @@ public class DatabaseManager {
                 );
             """);
 
-            // Seed default data if database is fresh
+            // 7. Settings table (for admin password and active exam configuration)
+            stmt.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
+            """);
+
+            // Seed default settings and questions if database is fresh
+            seedDefaultSettings();
             seedDefaultData();
 
         } catch (SQLException e) {
             System.err.println("Error initializing database schema: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private void seedDefaultSettings() {
+        String insertSql = "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)";
+        try (Connection conn = getConnection();
+             java.sql.PreparedStatement stmt = conn.prepareStatement(insertSql)) {
+            String[][] defaults = {
+                    {"admin_password", "admin123"},
+                    {"quiz_time_limit_sec", "60"},
+                    {"quiz_question_count", "5"},
+                    {"quiz_category_id", "0"},
+                    {"quiz_category_name", "All Categories (Mixed)"},
+                    {"quiz_difficulty", "ANY"},
+                    {"quiz_source", "LOCAL"}
+            };
+            for (String[] def : defaults) {
+                stmt.setString(1, def[0]);
+                stmt.setString(2, def[1]);
+                stmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            System.err.println("Note during seed settings: " + e.getMessage());
         }
     }
 

@@ -22,7 +22,6 @@ public class QuizView {
     private Label questionTextLabel;
     private VBox answerContainer;
     private Button nextButton;
-    private Button pauseButton;
 
     // Multiple Choice state
     private ToggleGroup mcqToggleGroup;
@@ -63,18 +62,16 @@ public class QuizView {
         };
         diffBadge.getStyleClass().addAll("badge", diffClass);
 
+        Label lockBadge = new Label("🔒 Timer Locked");
+        lockBadge.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8; -fx-padding: 2px 8px; -fx-background-color: #1e293b; -fx-background-radius: 10px;");
+
         Region spacer1 = new Region();
         HBox.setHgrow(spacer1, Priority.ALWAYS);
 
         timerLabel = new Label(timerService.getFormattedTime());
         timerLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #10b981;");
 
-        pauseButton = new Button("Pause");
-        pauseButton.getStyleClass().addAll("button", "button-outline");
-        pauseButton.setStyle("-fx-font-size: 12px; -fx-padding: 4px 12px;");
-        pauseButton.setOnAction(e -> handleTogglePause());
-
-        metaRow.getChildren().addAll(catBadge, diffBadge, spacer1, timerLabel, pauseButton);
+        metaRow.getChildren().addAll(catBadge, diffBadge, lockBadge, spacer1, timerLabel);
 
         // Progress row
         HBox progressRow = new HBox(12);
@@ -164,20 +161,6 @@ public class QuizView {
         });
 
         timerService.start();
-    }
-
-    private void handleTogglePause() {
-        if (timerService.isPaused()) {
-            timerService.resume();
-            pauseButton.setText("Pause");
-            answerContainer.setDisable(false);
-            nextButton.setDisable(false);
-        } else {
-            timerService.pause();
-            pauseButton.setText("Resume");
-            answerContainer.setDisable(true);
-            nextButton.setDisable(true);
-        }
     }
 
     private void renderCurrentQuestion() {
@@ -300,11 +283,10 @@ public class QuizView {
     }
 
     private void handleEarlySubmitConfirmation() {
-        timerService.pause();
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("Submit Quiz Early?");
+        alert.setTitle("Submit Exam Early?");
         alert.setHeaderText("Are you sure you want to finish and submit now?");
-        alert.setContentText("Any unanswered questions will be marked as incorrect.");
+        alert.setContentText("Any unanswered questions will be marked as incorrect.\nNote: The countdown timer continues running.");
 
         alert.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
@@ -312,8 +294,6 @@ public class QuizView {
                 timerService.stop();
                 quiz.submit();
                 finishQuiz();
-            } else {
-                timerService.resume();
             }
         });
     }

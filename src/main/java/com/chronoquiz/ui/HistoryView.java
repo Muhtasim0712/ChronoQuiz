@@ -61,9 +61,9 @@ public class HistoryView {
         HBox topBox = new HBox(16);
         topBox.setAlignment(Pos.CENTER_LEFT);
 
-        Button backBtn = new Button("← Main Menu");
+        Button backBtn = new Button("← Admin Dashboard");
         backBtn.getStyleClass().addAll("button", "button-outline");
-        backBtn.setOnAction(e -> NavigationManager.getInstance().showStartScreen());
+        backBtn.setOnAction(e -> NavigationManager.getInstance().showAdminDashboard());
 
         VBox titleBox = new VBox(2);
         Label title = new Label("Quiz Attempt History & Analytics");
