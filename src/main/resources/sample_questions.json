@@ -1,0 +1,42 @@
+[
+  {
+    "type": "MULTIPLE_CHOICE",
+    "category": "Computer Science",
+    "difficulty": "EASY",
+    "text": "Which data structure operates on a First-In, First-Out (FIFO) basis?",
+    "correctAnswer": "Queue",
+    "options": ["Queue", "Stack", "Tree", "Graph"]
+  },
+  {
+    "type": "MULTIPLE_CHOICE",
+    "category": "Computer Science",
+    "difficulty": "MEDIUM",
+    "text": "What is the worst-case time complexity of QuickSort?",
+    "correctAnswer": "O(n^2)",
+    "options": ["O(n log n)", "O(n^2)", "O(n)", "O(log n)"]
+  },
+  {
+    "type": "SHORT_ANSWER",
+    "category": "Computer Science",
+    "difficulty": "EASY",
+    "text": "What keyword is used in Java to inherit from another class?",
+    "correctAnswer": "extends",
+    "acceptedAnswers": ["extends"]
+  },
+  {
+    "type": "SHORT_ANSWER",
+    "category": "Science",
+    "difficulty": "MEDIUM",
+    "text": "What is the powerhouse of the biological cell?",
+    "correctAnswer": "Mitochondria",
+    "acceptedAnswers": ["Mitochondria", "Mitochondrion"]
+  },
+  {
+    "type": "MULTIPLE_CHOICE",
+    "category": "General Knowledge",
+    "difficulty": "EASY",
+    "text": "Which planet is known as the Red Planet?",
+    "correctAnswer": "Mars",
+    "options": ["Mars", "Jupiter", "Venus", "Saturn"]
+  }
+]
