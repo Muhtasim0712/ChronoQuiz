@@ -8,17 +8,22 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 
 /**
- * Live Quiz Screen: Displays questions, manages user input, renders dynamic controls
- * (radio buttons vs text fields), and integrates the background ScheduledExecutorService countdown timer.
+ * Modern Focused Quiz Screen:
+ * Displays questions inside a distraction-free student evaluation card,
+ * with elevated interactive answer options, dynamic urgency-indicating timer capsule,
+ * and a smooth gradient progress bar.
  */
 public class QuizView {
     private final BorderPane root = new BorderPane();
     private final Quiz quiz;
     private final QuizTimerService timerService;
 
+    private HBox timerCapsule;
+    private Label timerIconLabel;
     private Label timerLabel;
     private ProgressBar progressBar;
     private Label progressTextLabel;
+    private Label questionBadgeLabel;
     private Label questionTextLabel;
     private VBox answerContainer;
     private Button nextButton;
@@ -43,18 +48,18 @@ public class QuizView {
     }
 
     private void buildUI() {
-        root.setPadding(new Insets(24, 40, 30, 40));
+        root.setPadding(new Insets(24, 40, 26, 40));
 
-        // --- TOP SECTION: Timer & Progress Bar ---
-        VBox topBox = new VBox(12);
+        // --- TOP SECTION: Metadata, Urgency Timer & Progress Bar ---
+        VBox topBox = new VBox(14);
 
-        HBox metaRow = new HBox(15);
+        HBox metaRow = new HBox(14);
         metaRow.setAlignment(Pos.CENTER_LEFT);
 
-        Label catBadge = new Label(quiz.getCategoryName());
+        Label catBadge = new Label("📚 " + quiz.getCategoryName());
         catBadge.getStyleClass().addAll("badge", "badge-source");
 
-        Label diffBadge = new Label(quiz.getDifficulty().getDisplayName());
+        Label diffBadge = new Label("⚡ " + quiz.getDifficulty().getDisplayName());
         String diffClass = switch (quiz.getDifficulty()) {
             case EASY -> "badge-easy";
             case HARD -> "badge-hard";
@@ -62,23 +67,34 @@ public class QuizView {
         };
         diffBadge.getStyleClass().addAll("badge", diffClass);
 
-        Label lockBadge = new Label("🔒 Timer Locked");
-        lockBadge.setStyle("-fx-font-size: 11px; -fx-text-fill: #94a3b8; -fx-padding: 2px 8px; -fx-background-color: #1e293b; -fx-background-radius: 10px;");
+        Label studentBadge = new Label("👤 " + quiz.getUserName());
+        studentBadge.getStyleClass().addAll("badge", "badge-locked");
 
         Region spacer1 = new Region();
         HBox.setHgrow(spacer1, Priority.ALWAYS);
 
-        timerLabel = new Label(timerService.getFormattedTime());
-        timerLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #10b981;");
+        // Dynamic Timer Capsule (Solid white background with bold black numbers for maximum visibility)
+        timerCapsule = new HBox(8);
+        timerCapsule.setAlignment(Pos.CENTER);
+        timerCapsule.getStyleClass().addAll("timer-capsule", "timer-normal");
+        timerCapsule.setStyle("-fx-background-color: #ffffff; -fx-background-radius: 30px; -fx-padding: 6px 20px;");
 
-        metaRow.getChildren().addAll(catBadge, diffBadge, lockBadge, spacer1, timerLabel);
+        timerIconLabel = new Label("⏱");
+        timerIconLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: #000000; -fx-fill: #000000;");
+
+        timerLabel = new Label(timerService.getFormattedTime());
+        timerLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: 900; -fx-text-fill: #000000; -fx-fill: #000000;");
+
+        timerCapsule.getChildren().addAll(timerIconLabel, timerLabel);
+
+        metaRow.getChildren().addAll(catBadge, diffBadge, studentBadge, spacer1, timerCapsule);
 
         // Progress row
-        HBox progressRow = new HBox(12);
+        HBox progressRow = new HBox(14);
         progressRow.setAlignment(Pos.CENTER_LEFT);
 
         progressTextLabel = new Label("Question 1 of " + quiz.getTotalQuestions());
-        progressTextLabel.setStyle("-fx-font-size: 13px; -fx-text-fill: #94a3b8;");
+        progressTextLabel.setStyle("-fx-font-size: 13px; -fx-font-weight: 700; -fx-text-fill: #94a3b8;");
 
         progressBar = new ProgressBar(1.0);
         progressBar.setMaxWidth(Double.MAX_VALUE);
@@ -90,40 +106,52 @@ public class QuizView {
         topBox.getChildren().addAll(metaRow, progressRow);
         root.setTop(topBox);
 
-        // --- CENTER SECTION: Question Card ---
-        VBox centerCard = new VBox(24);
-        centerCard.getStyleClass().add("card");
+        // --- CENTER SECTION: Focused Question Card ---
+        VBox centerCard = new VBox(22);
+        centerCard.getStyleClass().add("card-hero");
         centerCard.setAlignment(Pos.TOP_LEFT);
-        centerCard.setMaxWidth(860);
+        centerCard.setMaxWidth(880);
+
+        // Question tag badge
+        questionBadgeLabel = new Label("QUESTION 1");
+        questionBadgeLabel.setStyle("-fx-font-size: 12px; -fx-font-weight: 800; -fx-text-fill: #38bdf8; -fx-padding: 3px 10px; -fx-background-color: rgba(6, 182, 212, 0.15); -fx-background-radius: 12px;");
 
         questionTextLabel = new Label();
         questionTextLabel.setWrapText(true);
-        questionTextLabel.getStyleClass().add("title-medium");
-        questionTextLabel.setMinHeight(60);
+        questionTextLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #ffffff; -fx-line-spacing: 4px;");
+        questionTextLabel.setMinHeight(50);
 
         answerContainer = new VBox(14);
         answerContainer.setAlignment(Pos.CENTER_LEFT);
 
-        centerCard.getChildren().addAll(questionTextLabel, answerContainer);
+        centerCard.getChildren().addAll(questionBadgeLabel, questionTextLabel, answerContainer);
 
         StackPane centerWrapper = new StackPane(centerCard);
         centerWrapper.setAlignment(Pos.CENTER);
-        centerWrapper.setPadding(new Insets(20, 0, 20, 0));
-        root.setCenter(centerWrapper);
+        centerWrapper.setPadding(new Insets(16, 0, 16, 0));
 
-        // --- BOTTOM SECTION: Navigation Buttons ---
+        ScrollPane scrollWrapper = new ScrollPane(centerWrapper);
+        scrollWrapper.setFitToWidth(true);
+        scrollWrapper.setStyle("-fx-background-color: transparent;");
+
+        root.setCenter(scrollWrapper);
+
+        // --- BOTTOM SECTION: Navigation & Submission Actions ---
         HBox bottomBox = new HBox(20);
         bottomBox.setAlignment(Pos.CENTER_RIGHT);
+        bottomBox.setPadding(new Insets(10, 0, 0, 0));
 
-        Button earlySubmitBtn = new Button("Submit Early");
+        Button earlySubmitBtn = new Button("Submit Early  🏁");
         earlySubmitBtn.getStyleClass().addAll("button", "button-outline");
         earlySubmitBtn.setOnAction(e -> handleEarlySubmitConfirmation());
 
         Region botSpacer = new Region();
         HBox.setHgrow(botSpacer, Priority.ALWAYS);
 
-        nextButton = new Button("Next Question");
+        nextButton = new Button("Next Question  →");
         nextButton.getStyleClass().addAll("button", "button-primary");
+        nextButton.setPrefHeight(46);
+        nextButton.setPrefWidth(220);
         nextButton.setDisable(true); // Disabled until user selects/types answer
         nextButton.setOnAction(e -> handleNextOrSubmit());
 
@@ -139,17 +167,19 @@ public class QuizView {
             double progress = timerService.getProgress();
             progressBar.setProgress(progress);
 
-            // Dynamic color feedback as time decreases
+            // Dynamic Urgency Feedback as time elapses
+            timerCapsule.getStyleClass().removeAll("timer-normal", "timer-warning", "timer-critical");
             progressBar.getStyleClass().removeAll("progress-normal", "progress-warning", "progress-danger");
+
             if (progress > 0.5) {
+                timerCapsule.getStyleClass().add("timer-normal");
                 progressBar.getStyleClass().add("progress-normal");
-                timerLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #10b981;");
             } else if (progress > 0.2) {
+                timerCapsule.getStyleClass().add("timer-warning");
                 progressBar.getStyleClass().add("progress-warning");
-                timerLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #f59e0b;");
             } else {
+                timerCapsule.getStyleClass().add("timer-critical");
                 progressBar.getStyleClass().add("progress-danger");
-                timerLabel.setStyle("-fx-font-size: 22px; -fx-font-weight: 800; -fx-text-fill: #ef4444;");
             }
         });
 
@@ -172,7 +202,8 @@ public class QuizView {
 
         int qNumber = quiz.getCurrentIndex() + 1;
         progressTextLabel.setText("Question " + qNumber + " of " + quiz.getTotalQuestions());
-        questionTextLabel.setText(qNumber + ".  " + current.getText());
+        questionBadgeLabel.setText("QUESTION " + qNumber + " OF " + quiz.getTotalQuestions());
+        questionTextLabel.setText(current.getText());
 
         answerContainer.getChildren().clear();
         nextButton.setDisable(true); // Must provide answer to advance
@@ -185,11 +216,11 @@ public class QuizView {
 
         // Update button text on last question
         if (!quiz.hasNext()) {
-            nextButton.setText("Submit Quiz");
+            nextButton.setText("Finish & Submit Quiz  ✓");
             nextButton.getStyleClass().remove("button-primary");
             nextButton.getStyleClass().add("button-success");
         } else {
-            nextButton.setText("Next Question");
+            nextButton.setText("Next Question  →");
             nextButton.getStyleClass().remove("button-success");
             nextButton.getStyleClass().add("button-primary");
         }
@@ -197,11 +228,14 @@ public class QuizView {
 
     private void renderMultipleChoice(MultipleChoiceQuestion mcq) {
         mcqToggleGroup = new ToggleGroup();
+        char optionLetter = 'A';
 
         for (Option opt : mcq.getOptions()) {
-            RadioButton rb = new RadioButton(opt.getOptionText());
+            String labelText = optionLetter + ".   " + opt.getOptionText();
+            RadioButton rb = new RadioButton(labelText);
             rb.setToggleGroup(mcqToggleGroup);
             rb.setMaxWidth(Double.MAX_VALUE);
+            rb.setUserData(opt.getOptionText());
 
             if (mcq.getUserAnswer() != null && mcq.getUserAnswer().equals(opt.getOptionText())) {
                 rb.setSelected(true);
@@ -214,24 +248,31 @@ public class QuizView {
             });
 
             answerContainer.getChildren().add(rb);
+            optionLetter++;
         }
 
         mcqToggleGroup.selectedToggleProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 RadioButton sel = (RadioButton) newVal;
-                mcq.setUserAnswer(sel.getText());
+                String actualAnswer = (String) sel.getUserData();
+                mcq.setUserAnswer(actualAnswer != null ? actualAnswer : sel.getText());
                 nextButton.setDisable(false);
             }
         });
     }
 
     private void renderShortAnswer(ShortAnswerQuestion saq) {
-        Label hint = new Label("Type your answer below (case-insensitive keyword matching):");
-        hint.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 13px;");
+        VBox saBox = new VBox(10);
+        saBox.setPadding(new Insets(14));
+        saBox.getStyleClass().add("card-subtle");
+
+        Label hint = new Label("💡 Type your response in the box below (case-insensitive keyword matching):");
+        hint.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 13px; -fx-font-weight: 600;");
 
         shortAnswerField = new TextField();
-        shortAnswerField.setPromptText("Enter your answer here...");
-        shortAnswerField.setPrefHeight(45);
+        shortAnswerField.setPromptText("Type your answer here and press Enter or click Next...");
+        shortAnswerField.setPrefHeight(48);
+        shortAnswerField.setStyle("-fx-font-size: 15px; -fx-font-weight: 600; -fx-control-inner-background: #0b1220; -fx-text-fill: #ffffff;");
 
         if (saq.getUserAnswer() != null && !saq.getUserAnswer().isEmpty()) {
             shortAnswerField.setText(saq.getUserAnswer());
@@ -250,7 +291,8 @@ public class QuizView {
             }
         });
 
-        answerContainer.getChildren().addAll(hint, shortAnswerField);
+        saBox.getChildren().addAll(hint, shortAnswerField);
+        answerContainer.getChildren().add(saBox);
     }
 
     private void captureCurrentAnswer() {
@@ -260,7 +302,8 @@ public class QuizView {
         if (current instanceof MultipleChoiceQuestion) {
             if (mcqToggleGroup != null && mcqToggleGroup.getSelectedToggle() != null) {
                 RadioButton sel = (RadioButton) mcqToggleGroup.getSelectedToggle();
-                current.setUserAnswer(sel.getText());
+                String actual = (String) sel.getUserData();
+                current.setUserAnswer(actual != null ? actual : sel.getText());
             }
         } else if (current instanceof ShortAnswerQuestion) {
             if (shortAnswerField != null) {

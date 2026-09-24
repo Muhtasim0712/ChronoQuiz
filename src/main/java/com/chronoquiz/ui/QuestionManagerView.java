@@ -20,10 +20,11 @@ import javafx.stage.FileChooser;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Question Manager Screen: Provides comprehensive CRUD operations for questions in SQLite,
- * integrates online API batch import with duplicate skipping, and JSON import/export.
+ * category creation and filtering, online API batch import with duplicate skipping, and JSON import/export.
  */
 public class QuestionManagerView {
     private final BorderPane root = new BorderPane();
@@ -34,7 +35,12 @@ public class QuestionManagerView {
     private final JsonImporter jsonImporter = new JsonImporter();
 
     private final ObservableList<Question> questionList = FXCollections.observableArrayList();
+    private final List<Question> allQuestionsCache = new ArrayList<>();
     private TableView<Question> tableView;
+
+    // Filter controls
+    private ComboBox<String> categoryFilterCombo;
+    private Label filterCountLabel;
 
     // Form inputs
     private ComboBox<String> categoryCombo;
@@ -45,6 +51,7 @@ public class QuestionManagerView {
     private TextField optionsOrAcceptedField;
     private Label optionsFieldLabel;
 
+    // Current selection tracking
     private Question selectedQuestion = null;
 
     public QuestionManagerView() {
@@ -63,14 +70,14 @@ public class QuestionManagerView {
         HBox topBox = new HBox(16);
         topBox.setAlignment(Pos.CENTER_LEFT);
 
-        Button backBtn = new Button("← Admin Dashboard");
+        Button backBtn = new Button("← Back to Admin Dashboard");
         backBtn.getStyleClass().addAll("button", "button-outline");
         backBtn.setOnAction(e -> NavigationManager.getInstance().showAdminDashboard());
 
         VBox titleBox = new VBox(2);
         Label title = new Label("Question Bank Manager");
         title.getStyleClass().add("title-medium");
-        Label subtitle = new Label("Add, edit, delete, or import questions with SQLite persistence.");
+        Label subtitle = new Label("Add, edit, delete, categorize, or import questions with SQLite persistence.");
         subtitle.getStyleClass().add("subtitle");
         titleBox.getChildren().addAll(title, subtitle);
 
@@ -96,6 +103,26 @@ public class QuestionManagerView {
         SplitPane splitPane = new SplitPane();
         splitPane.setStyle("-fx-box-border: transparent; -fx-background-color: transparent;");
 
+        // Filter Bar above table
+        HBox filterBar = new HBox(12);
+        filterBar.setAlignment(Pos.CENTER_LEFT);
+        filterBar.setPadding(new Insets(0, 0, 6, 0));
+
+        Label filterLbl = new Label("Filter by Category:");
+        filterLbl.setStyle("-fx-text-fill: #94a3b8; -fx-font-size: 13px; -fx-font-weight: bold;");
+
+        categoryFilterCombo = new ComboBox<>();
+        categoryFilterCombo.setPrefWidth(220);
+        categoryFilterCombo.setOnAction(e -> applyCategoryFilter());
+
+        Region filterSpacer = new Region();
+        HBox.setHgrow(filterSpacer, Priority.ALWAYS);
+
+        filterCountLabel = new Label();
+        filterCountLabel.setStyle("-fx-text-fill: #38bdf8; -fx-font-size: 12px; -fx-font-weight: bold;");
+
+        filterBar.getChildren().addAll(filterLbl, categoryFilterCombo, filterSpacer, filterCountLabel);
+
         // TableView setup
         tableView = new TableView<>(questionList);
         tableView.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
@@ -107,7 +134,7 @@ public class QuestionManagerView {
 
         TableColumn<Question, String> colCat = new TableColumn<>("Category");
         colCat.setCellValueFactory(new PropertyValueFactory<>("categoryName"));
-        colCat.setMinWidth(110);
+        colCat.setMinWidth(120);
 
         TableColumn<Question, String> colType = new TableColumn<>("Type");
         colType.setCellValueFactory(new PropertyValueFactory<>("type"));
@@ -133,7 +160,7 @@ public class QuestionManagerView {
             }
         });
 
-        VBox tableBox = new VBox(10, tableView);
+        VBox tableBox = new VBox(10, filterBar, tableView);
         tableBox.setPadding(new Insets(15, 10, 10, 0));
         VBox.setVgrow(tableView, Priority.ALWAYS);
 
@@ -147,12 +174,24 @@ public class QuestionManagerView {
         Label formTitle = new Label("Question Editor");
         formTitle.getStyleClass().add("title-small");
 
-        // Category
-        Label catLbl = new Label("Category (Select or Type):");
+        // Category with quick Add button
+        Label catLbl = new Label("Category / Subject:");
         catLbl.getStyleClass().add("label-field");
+
+        HBox catInputRow = new HBox(8);
+        catInputRow.setAlignment(Pos.CENTER_LEFT);
+
         categoryCombo = new ComboBox<>();
         categoryCombo.setEditable(true);
         categoryCombo.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(categoryCombo, Priority.ALWAYS);
+
+        Button newCatBtn = new Button("➕ New");
+        newCatBtn.getStyleClass().addAll("button", "button-outline");
+        newCatBtn.setStyle("-fx-font-size: 12px; -fx-padding: 7px 12px; -fx-cursor: hand;");
+        newCatBtn.setOnAction(e -> showAddCategoryDialog());
+
+        catInputRow.getChildren().addAll(categoryCombo, newCatBtn);
 
         // Type
         Label typeLbl = new Label("Question Type:");
@@ -226,7 +265,7 @@ public class QuestionManagerView {
 
         formCard.getChildren().addAll(
                 formTitle,
-                catLbl, categoryCombo,
+                catLbl, catInputRow,
                 typeLbl, typeCombo,
                 diffLbl, difficultyCombo,
                 textLbl, textArea,
@@ -247,15 +286,114 @@ public class QuestionManagerView {
     }
 
     private void loadTableData() {
-        questionList.clear();
-        questionList.addAll(questionDAO.getAllQuestions());
+        allQuestionsCache.clear();
+        allQuestionsCache.addAll(questionDAO.getAllQuestions());
 
+        // Refresh category combos
+        List<Category> allCats = categoryDAO.getAllCategories();
+
+        String currentFormCat = categoryCombo.getValue();
         categoryCombo.getItems().clear();
-        for (Category c : categoryDAO.getAllCategories()) {
+        for (Category c : allCats) {
             categoryCombo.getItems().add(c.getName());
         }
-        if (!categoryCombo.getItems().isEmpty()) {
+        if (currentFormCat != null && categoryCombo.getItems().contains(currentFormCat)) {
+            categoryCombo.setValue(currentFormCat);
+        } else if (!categoryCombo.getItems().isEmpty()) {
             categoryCombo.getSelectionModel().selectFirst();
+        }
+
+        String currentFilter = categoryFilterCombo != null ? categoryFilterCombo.getValue() : "All Categories";
+        if (categoryFilterCombo != null) {
+            categoryFilterCombo.getItems().clear();
+            categoryFilterCombo.getItems().add("All Categories");
+            for (Category c : allCats) {
+                categoryFilterCombo.getItems().add(c.getName());
+            }
+            if (currentFilter != null && categoryFilterCombo.getItems().contains(currentFilter)) {
+                categoryFilterCombo.setValue(currentFilter);
+            } else {
+                categoryFilterCombo.setValue("All Categories");
+            }
+        }
+
+        applyCategoryFilter();
+    }
+
+    private void applyCategoryFilter() {
+        if (categoryFilterCombo == null) return;
+        String selected = categoryFilterCombo.getValue();
+        questionList.clear();
+        if (selected == null || "All Categories".equalsIgnoreCase(selected)) {
+            questionList.addAll(allQuestionsCache);
+            if (filterCountLabel != null) {
+                filterCountLabel.setText("Total: " + allQuestionsCache.size() + " Questions");
+            }
+        } else {
+            for (Question q : allQuestionsCache) {
+                if (selected.equalsIgnoreCase(q.getCategoryName())) {
+                    questionList.add(q);
+                }
+            }
+            if (filterCountLabel != null) {
+                filterCountLabel.setText("Showing: " + questionList.size() + " in " + selected);
+            }
+        }
+    }
+
+    public void showAddCategoryDialog() {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Add New Quiz Category");
+        dialog.setHeaderText("Create a new quiz category for questions and examinations.");
+
+        VBox box = new VBox(12);
+        box.setPadding(new Insets(20));
+        box.setMinWidth(440);
+
+        Label nameLbl = new Label("Category / Subject Name (Required):");
+        nameLbl.getStyleClass().add("label-field");
+        TextField nameField = new TextField();
+        nameField.setPromptText("e.g. Software Engineering, Data Science, World History");
+        nameField.setStyle("-fx-control-inner-background: #0b1329; -fx-text-fill: #ffffff; -fx-prompt-text-fill: #64748b; -fx-font-size: 14px;");
+
+        Label descLbl = new Label("Curriculum Scope / Description Outline:");
+        descLbl.getStyleClass().add("label-field");
+        TextArea descArea = new TextArea();
+        descArea.setPromptText("Enter brief topics, syllabus coverage, or curriculum expectations...");
+        descArea.setPrefRowCount(3);
+        descArea.setWrapText(true);
+        descArea.setStyle("-fx-control-inner-background: #0b1329; -fx-text-fill: #ffffff; -fx-prompt-text-fill: #64748b; -fx-font-size: 13px;");
+
+        box.getChildren().addAll(nameLbl, nameField, descLbl, descArea);
+        dialog.getDialogPane().setContent(box);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.getDialogPane().setStyle("-fx-background-color: #131b2e;");
+
+        Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            String name = nameField.getText().trim();
+            String desc = descArea.getText().trim();
+
+            if (name.isEmpty()) {
+                showAlert(Alert.AlertType.WARNING, "Invalid Input", "Category name cannot be empty.");
+                return;
+            }
+
+            if (categoryDAO.categoryExists(name)) {
+                showAlert(Alert.AlertType.WARNING, "Duplicate Category", "A category named '" + name + "' already exists.");
+                categoryCombo.setValue(name);
+                return;
+            }
+
+            int newId = categoryDAO.createCategory(name, desc);
+            if (newId > 0) {
+                showAlert(Alert.AlertType.INFORMATION, "Category Created",
+                        "Successfully created category: " + name + "\nNow selected in the question editor.");
+                loadTableData();
+                categoryCombo.setValue(name);
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Creation Failed", "Could not create category in database.");
+            }
         }
     }
 
@@ -308,124 +446,145 @@ public class QuestionManagerView {
         if (catName.isEmpty()) catName = "General Knowledge";
 
         if (text.isEmpty() || correct.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Incomplete Form", "Please provide both question text and a correct answer.");
+            showAlert(Alert.AlertType.WARNING, "Validation Error", "Question Text and Correct Answer cannot be empty.");
             return;
         }
 
         int catId = categoryDAO.getOrCreateCategory(catName);
-        Difficulty diff = difficultyCombo.getValue() != null ? difficultyCombo.getValue() : Difficulty.MEDIUM;
+        Difficulty diff = difficultyCombo.getValue();
         String type = typeCombo.getValue();
 
         Question newQuestion;
         if (Question.TYPE_SHORT_ANSWER.equals(type)) {
-            ShortAnswerQuestion saq = new ShortAnswerQuestion(0, catId, catName, text, diff, correct, null);
-            saq.setAcceptedAnswersFromCsv(optionsOrAcceptedField.getText());
-            newQuestion = saq;
+            List<String> accepted = new ArrayList<>();
+            String rawAccepted = optionsOrAcceptedField.getText().trim();
+            if (!rawAccepted.isEmpty()) {
+                for (String part : rawAccepted.split(",")) {
+                    if (!part.trim().isEmpty()) {
+                        accepted.add(part.trim());
+                    }
+                }
+            }
+            if (!accepted.contains(correct)) {
+                accepted.add(correct);
+            }
+            newQuestion = new ShortAnswerQuestion(0, catId, catName, text, diff, correct, accepted);
         } else {
-            List<Option> options = parseOptions(optionsOrAcceptedField.getText(), correct);
+            List<Option> options = new ArrayList<>();
+            String rawOpts = optionsOrAcceptedField.getText().trim();
+            if (!rawOpts.isEmpty()) {
+                for (String part : rawOpts.split(",")) {
+                    String clean = part.trim();
+                    if (!clean.isEmpty()) {
+                        options.add(new Option(clean, clean.equalsIgnoreCase(correct)));
+                    }
+                }
+            }
+            boolean found = options.stream().anyMatch(Option::isCorrect);
+            if (!found) {
+                options.add(new Option(correct, true));
+            }
             newQuestion = new MultipleChoiceQuestion(0, catId, catName, text, diff, correct, options);
         }
 
         if (questionDAO.insertQuestion(newQuestion)) {
-            loadTableData();
+            showAlert(Alert.AlertType.INFORMATION, "Success", "Question added successfully to category: " + catName);
             clearForm();
-            showAlert(Alert.AlertType.INFORMATION, "Success", "Question successfully added to database.");
+            loadTableData();
         } else {
-            showAlert(Alert.AlertType.ERROR, "Error", "Failed to insert question into database.");
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to add question to database.");
         }
     }
 
     private void handleUpdateQuestion() {
         if (selectedQuestion == null) {
-            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a question from the table to edit.");
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a question from the table to update.");
             return;
         }
 
         String text = textArea.getText().trim();
         String correct = correctAnswerField.getText().trim();
         String catName = categoryCombo.getValue() != null ? categoryCombo.getValue().trim() : "General Knowledge";
+        if (catName.isEmpty()) catName = "General Knowledge";
 
         if (text.isEmpty() || correct.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Incomplete Form", "Please provide question text and correct answer.");
+            showAlert(Alert.AlertType.WARNING, "Validation Error", "Question Text and Correct Answer cannot be empty.");
             return;
         }
 
         int catId = categoryDAO.getOrCreateCategory(catName);
-        selectedQuestion.setText(text);
-        selectedQuestion.setCorrectAnswer(correct);
-        selectedQuestion.setCategoryId(catId);
-        selectedQuestion.setCategoryName(catName);
-        selectedQuestion.setDifficulty(difficultyCombo.getValue());
-        selectedQuestion.setType(typeCombo.getValue());
+        Difficulty diff = difficultyCombo.getValue();
+        String type = typeCombo.getValue();
 
-        if (selectedQuestion instanceof MultipleChoiceQuestion mcq) {
-            List<Option> options = parseOptions(optionsOrAcceptedField.getText(), correct);
-            mcq.setOptions(options);
-        } else if (selectedQuestion instanceof ShortAnswerQuestion saq) {
-            saq.setAcceptedAnswersFromCsv(optionsOrAcceptedField.getText());
+        Question updatedQuestion;
+        if (Question.TYPE_SHORT_ANSWER.equals(type)) {
+            List<String> accepted = new ArrayList<>();
+            String rawAccepted = optionsOrAcceptedField.getText().trim();
+            if (!rawAccepted.isEmpty()) {
+                for (String part : rawAccepted.split(",")) {
+                    if (!part.trim().isEmpty()) {
+                        accepted.add(part.trim());
+                    }
+                }
+            }
+            if (!accepted.contains(correct)) {
+                accepted.add(correct);
+            }
+            updatedQuestion = new ShortAnswerQuestion(selectedQuestion.getId(), catId, catName, text, diff, correct, accepted);
+        } else {
+            List<Option> options = new ArrayList<>();
+            String rawOpts = optionsOrAcceptedField.getText().trim();
+            if (!rawOpts.isEmpty()) {
+                for (String part : rawOpts.split(",")) {
+                    String clean = part.trim();
+                    if (!clean.isEmpty()) {
+                        options.add(new Option(clean, clean.equalsIgnoreCase(correct)));
+                    }
+                }
+            }
+            boolean found = options.stream().anyMatch(Option::isCorrect);
+            if (!found) {
+                options.add(new Option(correct, true));
+            }
+            updatedQuestion = new MultipleChoiceQuestion(selectedQuestion.getId(), catId, catName, text, diff, correct, options);
         }
 
-        if (questionDAO.updateQuestion(selectedQuestion)) {
+        if (questionDAO.updateQuestion(updatedQuestion)) {
+            showAlert(Alert.AlertType.INFORMATION, "Success", "Question updated successfully.");
             loadTableData();
-            showAlert(Alert.AlertType.INFORMATION, "Success", "Question successfully updated.");
         } else {
             showAlert(Alert.AlertType.ERROR, "Error", "Failed to update question in database.");
         }
     }
 
     private void handleDeleteQuestion() {
-        Question selected = tableView.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a question to delete.");
+        if (selectedQuestion == null) {
+            showAlert(Alert.AlertType.WARNING, "No Selection", "Please select a question from the table to delete.");
             return;
         }
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Confirm Deletion");
-        confirm.setHeaderText("Delete Question #" + selected.getId() + "?");
-        confirm.setContentText("This will permanently delete the question and all associated options from the SQLite database.");
+        confirm.setHeaderText("Delete Question #" + selectedQuestion.getId() + "?");
+        confirm.setContentText("Are you sure you want to permanently remove this question?");
 
-        confirm.showAndWait().ifPresent(res -> {
-            if (res == ButtonType.OK) {
-                if (questionDAO.deleteQuestion(selected.getId())) {
-                    loadTableData();
-                    clearForm();
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to delete question.");
-                }
-            }
-        });
-    }
-
-    private List<Option> parseOptions(String rawOptions, String correctAnswer) {
-        List<Option> list = new ArrayList<>();
-        if (rawOptions != null && !rawOptions.trim().isEmpty()) {
-            String[] parts = rawOptions.split(",");
-            for (String p : parts) {
-                String trimmed = p.trim();
-                if (!trimmed.isEmpty()) {
-                    boolean isCorrect = trimmed.equalsIgnoreCase(correctAnswer.trim());
-                    list.add(new Option(trimmed, isCorrect));
-                }
+        if (confirm.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            if (questionDAO.deleteQuestion(selectedQuestion.getId())) {
+                showAlert(Alert.AlertType.INFORMATION, "Deleted", "Question successfully deleted.");
+                clearForm();
+                loadTableData();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to delete question from database.");
             }
         }
-
-        boolean hasCorrect = list.stream().anyMatch(Option::isCorrect);
-        if (!hasCorrect && !correctAnswer.isEmpty()) {
-            list.add(new Option(correctAnswer.trim(), true));
-        }
-        return list;
     }
 
     private void showApiImportDialog() {
         Dialog<ButtonType> dialog = new Dialog<>();
-        dialog.setTitle("Import Questions from Trivia API");
-        dialog.setHeaderText("Fetch questions from Open Trivia DB and save to local SQLite bank.");
+        dialog.setTitle("Import Questions from OpenTDB Trivia API");
+        dialog.setHeaderText("Fetch fresh trivia questions directly into local SQLite storage.");
 
-        VBox content = new VBox(14);
-        content.setPadding(new Insets(16));
-
-        ComboBox<Integer> countBox = new ComboBox<>(FXCollections.observableArrayList(5, 10, 15, 20));
+        ComboBox<Integer> countBox = new ComboBox<>(FXCollections.observableArrayList(5, 10, 15, 20, 25));
         countBox.setValue(10);
 
         ComboBox<String> catBox = new ComboBox<>(FXCollections.observableArrayList(
@@ -438,17 +597,18 @@ public class QuestionManagerView {
         ));
         diffBox.setValue(Difficulty.ANY);
 
-        content.getChildren().addAll(
-                new Label("Question Count:"), countBox,
+        VBox content = new VBox(12,
+                new Label("Question Amount:"), countBox,
                 new Label("Category:"), catBox,
                 new Label("Difficulty:"), diffBox
         );
+        content.setPadding(new Insets(16));
 
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
-        dialog.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
+        dialog.showAndWait().ifPresent(res -> {
+            if (res == ButtonType.OK) {
                 int amount = countBox.getValue();
                 Difficulty diff = diffBox.getValue();
                 Integer catId = switch (catBox.getValue()) {
@@ -461,13 +621,14 @@ public class QuestionManagerView {
 
                 apiService.fetchQuestionsAsync(amount, catId, diff)
                         .thenAccept(importedQuestions -> Platform.runLater(() -> {
-                            loadTableData();
                             showAlert(Alert.AlertType.INFORMATION, "Import Complete",
                                     "Successfully imported " + importedQuestions.size() +
-                                            " questions from Open Trivia DB into SQLite database.");
+                                            " questions from the online API into your local database!");
+                            loadTableData();
                         }))
                         .exceptionally(ex -> {
-                            Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "API Import Failed", ex.getMessage()));
+                            Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "API Import Failed",
+                                    "Error communicating with OpenTDB API: " + ex.getMessage()));
                             return null;
                         });
             }
@@ -476,18 +637,18 @@ public class QuestionManagerView {
 
     private void handleJsonImport() {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Import Questions from JSON");
+        fileChooser.setTitle("Import Questions from JSON File");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files (*.json)", "*.json"));
 
         File file = fileChooser.showOpenDialog(NavigationManager.getInstance().getPrimaryStage());
         if (file != null) {
             try {
-                int count = jsonImporter.importQuestionsFromFile(file);
-                loadTableData();
+                int imported = jsonImporter.importQuestionsFromFile(file);
                 showAlert(Alert.AlertType.INFORMATION, "Import Successful",
-                        "Successfully imported " + count + " questions into your SQLite database.");
+                        "Successfully imported " + imported + " new questions from JSON into SQLite.");
+                loadTableData();
             } catch (Exception e) {
-                showAlert(Alert.AlertType.ERROR, "Import Error", "Failed to parse or import JSON file: " + e.getMessage());
+                showAlert(Alert.AlertType.ERROR, "Import Error", "Failed to parse JSON file: " + e.getMessage());
             }
         }
     }

@@ -60,9 +60,17 @@ public class DatabaseManager {
             stmt.execute("""
                 CREATE TABLE IF NOT EXISTS categories (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    name TEXT NOT NULL UNIQUE
+                    name TEXT NOT NULL UNIQUE,
+                    description TEXT DEFAULT ''
                 );
             """);
+
+            // Migration: Ensure description column exists in existing database files
+            try (Statement alterStmt = conn.createStatement()) {
+                alterStmt.execute("ALTER TABLE categories ADD COLUMN description TEXT DEFAULT ''");
+            } catch (SQLException ignored) {
+                // Column already exists
+            }
 
             // 3. Questions table
             stmt.execute("""

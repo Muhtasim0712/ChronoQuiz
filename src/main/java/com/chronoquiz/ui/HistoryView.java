@@ -61,7 +61,7 @@ public class HistoryView {
         HBox topBox = new HBox(16);
         topBox.setAlignment(Pos.CENTER_LEFT);
 
-        Button backBtn = new Button("← Admin Dashboard");
+        Button backBtn = new Button("← Back to Admin Dashboard");
         backBtn.getStyleClass().addAll("button", "button-outline");
         backBtn.setOnAction(e -> NavigationManager.getInstance().showAdminDashboard());
 
@@ -168,7 +168,7 @@ public class HistoryView {
             row.setOnMouseClicked(event -> {
                 if (event.getClickCount() == 2 && (!row.isEmpty())) {
                     Attempt rowData = row.getItem();
-                    NavigationManager.getInstance().showReviewScreen(null, rowData);
+                    NavigationManager.getInstance().showReviewScreen(null, rowData, true);
                 }
             });
             return row;
@@ -182,19 +182,19 @@ public class HistoryView {
         // Bottom Bar
         HBox bottomBox = new HBox(16);
         bottomBox.setAlignment(Pos.CENTER_RIGHT);
-        bottomBox.setPadding(new Insets(14, 0, 0, 0));
+        bottomBox.setPadding(new Insets(16, 0, 0, 0));
 
-        Label hint = new Label("Tip: Double-click any row to inspect per-question answers.");
-        hint.setStyle("-fx-text-fill: #64748b; -fx-font-style: italic;");
+        Label hint = new Label("💡 Tip: Double-click any row or select an attempt to inspect detailed answers.");
+        hint.setStyle("-fx-text-fill: #94a3b8; -fx-font-style: italic; -fx-font-size: 13px;");
         Region bSpacer = new Region();
         HBox.setHgrow(bSpacer, Priority.ALWAYS);
 
-        Button reviewSelectedBtn = new Button("Review Selected Attempt");
+        Button reviewSelectedBtn = new Button("🔍 Review Selected Attempt");
         reviewSelectedBtn.getStyleClass().addAll("button", "button-primary");
         reviewSelectedBtn.setOnAction(e -> {
             Attempt selected = tableView.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                NavigationManager.getInstance().showReviewScreen(null, selected);
+                NavigationManager.getInstance().showReviewScreen(null, selected, true);
             } else {
                 showAlert(Alert.AlertType.WARNING, "No Selection", "Please select an attempt from the table to review.");
             }

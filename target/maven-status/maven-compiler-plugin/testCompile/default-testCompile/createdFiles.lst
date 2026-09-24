@@ -1,2 +1,4 @@
 com\chronoquiz\service\QuizTimerServiceTest.class
+com\chronoquiz\model\QuizTest.class
+com\chronoquiz\db\CategoryDAOTest.class
 com\chronoquiz\db\SettingsDAOTest.class

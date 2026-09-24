@@ -76,7 +76,11 @@ public class NavigationManager {
     }
 
     public void showReviewScreen(Quiz quiz, Attempt attempt) {
-        ReviewView view = new ReviewView(quiz, attempt);
+        showReviewScreen(quiz, attempt, quiz == null);
+    }
+
+    public void showReviewScreen(Quiz quiz, Attempt attempt, boolean fromHistory) {
+        ReviewView view = new ReviewView(quiz, attempt, fromHistory);
         setRoot(view.getView());
     }
 

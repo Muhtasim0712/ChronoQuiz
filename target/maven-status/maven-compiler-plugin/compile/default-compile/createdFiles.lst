@@ -13,6 +13,7 @@ com\chronoquiz\db\UserDAO.class
 com\chronoquiz\util\JsonImporter.class
 com\chronoquiz\model\Category.class
 com\chronoquiz\ui\NavigationManager.class
+com\chronoquiz\ui\StartView$CategoryItem.class
 com\chronoquiz\model\Difficulty.class
 com\chronoquiz\ui\AdminDashboardView$CategoryOption.class
 com\chronoquiz\api\ApiService.class

@@ -10,6 +10,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 
@@ -21,9 +22,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Instant Scoring & Results Screen:
- * Calculates performance metrics, saves attempt to SQLite concurrently,
- * and allows exporting results to JSON or reviewing answers.
+ * Modern Engaging Results Dashboard:
+ * Prominently presents final scores, performance summary, individual KPI cards
+ * for correct, incorrect, unanswered, and time taken, and provides intuitive actions.
  */
 public class ResultsView {
     private final BorderPane root = new BorderPane();
@@ -51,108 +52,155 @@ public class ResultsView {
     }
 
     private void buildUI() {
-        root.setPadding(new Insets(30, 40, 30, 40));
+        root.setPadding(new Insets(24, 40, 26, 40));
 
-        // Header
-        VBox headerBox = new VBox(6);
-        headerBox.setAlignment(Pos.CENTER);
+        // Top Navigation Bar with Back Button
+        HBox topBox = new HBox(16);
+        topBox.setAlignment(Pos.CENTER_LEFT);
 
-        Label headerLbl = new Label("Quiz Complete!");
+        Button backBtn = new Button("← Back to Main Menu");
+        backBtn.getStyleClass().addAll("button", "button-outline");
+        backBtn.setOnAction(e -> NavigationManager.getInstance().showStartScreen());
+
+        VBox titleBox = new VBox(2);
+        HBox titleRow = new HBox(10);
+        titleRow.setAlignment(Pos.CENTER_LEFT);
+        Label trophyIcon = new Label("🏆");
+        trophyIcon.setStyle("-fx-font-size: 26px;");
+        Label headerLbl = new Label("Examination Evaluation Complete");
         headerLbl.getStyleClass().add("title-large");
+        headerLbl.setStyle("-fx-font-size: 22px; -fx-font-weight: 900; -fx-text-fill: #ffffff;");
+        titleRow.getChildren().addAll(trophyIcon, headerLbl);
 
-        Label playerLbl = new Label("Performance Summary for: " + (quiz != null ? quiz.getUserName() : (attempt != null ? attempt.getUserName() : "Player")));
+        String studentName = quiz != null ? quiz.getUserName() : (attempt != null ? attempt.getUserName() : "Student");
+        Label playerLbl = new Label("Performance Report for: " + studentName);
         playerLbl.getStyleClass().add("subtitle");
+        playerLbl.setStyle("-fx-font-size: 13px; -fx-text-fill: #38bdf8; -fx-font-weight: 600;");
+        titleBox.getChildren().addAll(titleRow, playerLbl);
 
-        headerBox.getChildren().addAll(headerLbl, playerLbl);
-        root.setTop(headerBox);
+        topBox.getChildren().addAll(backBtn, titleBox);
+        root.setTop(topBox);
 
-        // Center Card
-        VBox centerCard = new VBox(24);
-        centerCard.getStyleClass().add("card-accent");
+        // Center Hero Card
+        VBox centerCard = new VBox(22);
+        centerCard.getStyleClass().add("card-hero");
         centerCard.setAlignment(Pos.CENTER);
-        centerCard.setMaxWidth(680);
+        centerCard.setMaxWidth(760);
 
         int score = quiz != null ? quiz.calculateScore() : (attempt != null ? attempt.getScore() : 0);
         int total = quiz != null ? quiz.getTotalQuestions() : (attempt != null ? attempt.getTotal() : 0);
         double percentage = total > 0 ? ((double) score / total) * 100.0 : 0.0;
         int timeTaken = quiz != null ? quiz.getTimeTakenSeconds() : (attempt != null ? attempt.getTimeTakenSec() : 0);
 
-        // Performance Badge
+        // Count unanswered questions
+        int unansweredCount = 0;
+        if (quiz != null) {
+            for (Question q : quiz.getQuestions()) {
+                if (q.getUserAnswer() == null || q.getUserAnswer().trim().isEmpty()) {
+                    unansweredCount++;
+                }
+            }
+        } else if (attempt != null && attempt.getAnswers() != null) {
+            for (AttemptAnswer a : attempt.getAnswers()) {
+                if (a.getUserAnswer() == null || a.getUserAnswer().contains("[Unanswered]") || a.getUserAnswer().contains("[No Answer")) {
+                    unansweredCount++;
+                }
+            }
+        }
+        int incorrectCount = Math.max(0, total - score - unansweredCount);
+
+        // Performance Summary Badge
         Label badgeLabel = new Label();
         badgeLabel.getStyleClass().add("badge");
         if (percentage >= 80.0) {
-            badgeLabel.setText("EXCELLENT — Top Tier Mastery");
-            badgeLabel.getStyleClass().add("badge-easy");
+            badgeLabel.setText("★ EXCELLENT MASTERY — Top Tier Academic Performance!");
+            badgeLabel.setStyle("-fx-background-color: rgba(16, 185, 129, 0.2); -fx-text-fill: #34d399; -fx-border-color: #10b981; -fx-border-radius: 20px; -fx-font-size: 13px; -fx-font-weight: 800; -fx-padding: 6px 16px;");
         } else if (percentage >= 50.0) {
-            badgeLabel.setText("GOOD EFFORT — Solid Knowledge");
-            badgeLabel.getStyleClass().add("badge-medium");
+            badgeLabel.setText("★ SOLID PROFICIENCY — Good Competency Demonstrated!");
+            badgeLabel.setStyle("-fx-background-color: rgba(6, 182, 212, 0.2); -fx-text-fill: #38bdf8; -fx-border-color: #06b6d4; -fx-border-radius: 20px; -fx-font-size: 13px; -fx-font-weight: 800; -fx-padding: 6px 16px;");
         } else {
-            badgeLabel.setText("NEEDS PRACTICE — Review Below");
-            badgeLabel.getStyleClass().add("badge-hard");
+            badgeLabel.setText("★ REVIEW RECOMMENDED — Focus on Weak Areas to Improve!");
+            badgeLabel.setStyle("-fx-background-color: rgba(244, 63, 94, 0.2); -fx-text-fill: #fb7185; -fx-border-color: #f43f5e; -fx-border-radius: 20px; -fx-font-size: 13px; -fx-font-weight: 800; -fx-padding: 6px 16px;");
         }
 
-        // Score display
+        // Hero Score Display Box
+        VBox scoreHeroBox = new VBox(4);
+        scoreHeroBox.setAlignment(Pos.CENTER);
+        scoreHeroBox.setPadding(new Insets(12, 24, 12, 24));
+        scoreHeroBox.setStyle("-fx-background-color: rgba(99, 102, 241, 0.1); -fx-background-radius: 18px; -fx-border-color: rgba(99, 102, 241, 0.3); -fx-border-radius: 18px; -fx-border-width: 1px;");
+
         Label scoreVal = new Label(score + " / " + total);
-        scoreVal.setStyle("-fx-font-size: 52px; -fx-font-weight: 900; -fx-text-fill: #6366f1;");
+        scoreVal.setStyle("-fx-font-size: 54px; -fx-font-weight: 900; -fx-text-fill: linear-gradient(to right, #ffffff, #c7d2fe, #38bdf8);");
 
-        Label pctVal = new Label(String.format("%.1f%% Correct", percentage));
-        pctVal.setStyle("-fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: #f8fafc;");
+        Label pctVal = new Label(String.format("%.1f%% Overall Accuracy", percentage));
+        pctVal.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #e2e8f0;");
 
-        // Metrics Grid
-        GridPane metricsGrid = new GridPane();
-        metricsGrid.setHgap(20);
-        metricsGrid.setVgap(12);
-        metricsGrid.setAlignment(Pos.CENTER);
+        scoreHeroBox.getChildren().addAll(scoreVal, pctVal);
 
-        metricsGrid.add(createMetricBox("Correct Answers", String.valueOf(score), "#10b981"), 0, 0);
-        metricsGrid.add(createMetricBox("Incorrect Answers", String.valueOf(total - score), "#ef4444"), 1, 0);
-        metricsGrid.add(createMetricBox("Time Taken", formatTime(timeTaken), "#38bdf8"), 2, 0);
+        // Separate KPI Metric Cards in a Responsive Row
+        HBox metricsRow = new HBox(14);
+        metricsRow.setAlignment(Pos.CENTER);
 
-        savingStatusLabel = new Label("Saving attempt to database in background...");
+        VBox correctCard = createMetricCard("🎯 Correct", String.valueOf(score), "#34d399", "rgba(16, 185, 129, 0.15)");
+        VBox incorrectCard = createMetricCard("❌ Incorrect", String.valueOf(incorrectCount), "#fb7185", "rgba(244, 63, 94, 0.15)");
+        VBox unansweredCard = createMetricCard("⚪ Unanswered", String.valueOf(unansweredCount), "#fbbf24", "rgba(245, 158, 11, 0.15)");
+        VBox timeCard = createMetricCard("⏱ Time Taken", formatTime(timeTaken), "#38bdf8", "rgba(6, 182, 212, 0.15)");
+
+        metricsRow.getChildren().addAll(correctCard, incorrectCard, unansweredCard, timeCard);
+        HBox.setHgrow(correctCard, Priority.ALWAYS);
+        HBox.setHgrow(incorrectCard, Priority.ALWAYS);
+        HBox.setHgrow(unansweredCard, Priority.ALWAYS);
+        HBox.setHgrow(timeCard, Priority.ALWAYS);
+
+        savingStatusLabel = new Label("Saving evaluation to database in background...");
         savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8;");
 
-        centerCard.getChildren().addAll(badgeLabel, scoreVal, pctVal, metricsGrid, savingStatusLabel);
+        centerCard.getChildren().addAll(badgeLabel, scoreHeroBox, metricsRow, savingStatusLabel);
 
         StackPane centerWrapper = new StackPane(centerCard);
         centerWrapper.setAlignment(Pos.CENTER);
-        root.setCenter(centerWrapper);
+        centerWrapper.setPadding(new Insets(14, 0, 14, 0));
 
-        // Bottom Actions
+        ScrollPane scrollWrapper = new ScrollPane(centerWrapper);
+        scrollWrapper.setFitToWidth(true);
+        scrollWrapper.setStyle("-fx-background-color: transparent;");
+
+        root.setCenter(scrollWrapper);
+
+        // Bottom Actions Row (without Try Again button)
         HBox bottomBox = new HBox(16);
         bottomBox.setAlignment(Pos.CENTER);
-        bottomBox.setPadding(new Insets(20, 0, 10, 0));
+        bottomBox.setPadding(new Insets(12, 0, 8, 0));
 
-        Button reviewBtn = new Button("Review All Answers");
+        Button reviewBtn = new Button("Review Answers  📝");
         reviewBtn.getStyleClass().addAll("button", "button-primary");
-        reviewBtn.setOnAction(e -> NavigationManager.getInstance().showReviewScreen(quiz, attempt));
+        reviewBtn.setOnAction(e -> NavigationManager.getInstance().showReviewScreen(quiz, attempt, false));
 
-        Button exportJsonBtn = new Button("Export Result (JSON)");
+        Button exportJsonBtn = new Button("Export Result (JSON)  📥");
         exportJsonBtn.getStyleClass().addAll("button", "button-outline");
         exportJsonBtn.setOnAction(e -> handleExportResult());
 
-        Button retakeBtn = new Button("Play Again");
-        retakeBtn.getStyleClass().addAll("button", "button-success");
-        retakeBtn.setOnAction(e -> NavigationManager.getInstance().showStartScreen());
-
-        Button menuBtn = new Button("Main Menu");
+        Button menuBtn = new Button("Exit to Main Menu  🏠");
         menuBtn.getStyleClass().addAll("button", "button-outline");
         menuBtn.setOnAction(e -> NavigationManager.getInstance().showStartScreen());
 
-        bottomBox.getChildren().addAll(reviewBtn, exportJsonBtn, retakeBtn, menuBtn);
+        bottomBox.getChildren().addAll(reviewBtn, exportJsonBtn, menuBtn);
         root.setBottom(bottomBox);
     }
 
-    private VBox createMetricBox(String labelText, String valueText, String hexColor) {
-        VBox box = new VBox(4);
+    private VBox createMetricCard(String labelText, String valueText, String hexColor, String bgTint) {
+        VBox box = new VBox(6);
         box.setAlignment(Pos.CENTER);
         box.getStyleClass().add("card-subtle");
-        box.setPrefWidth(160);
+        box.setStyle("-fx-background-color: " + bgTint + "; -fx-border-color: rgba(255, 255, 255, 0.08); -fx-border-radius: 14px; -fx-background-radius: 14px;");
+        box.setPadding(new Insets(14, 12, 14, 12));
+        box.setMinWidth(130);
 
         Label val = new Label(valueText);
-        val.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: " + hexColor + ";");
+        val.setStyle("-fx-font-size: 26px; -fx-font-weight: 900; -fx-text-fill: " + hexColor + ";");
 
         Label lbl = new Label(labelText);
-        lbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #94a3b8;");
+        lbl.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #e2e8f0;");
 
         box.getChildren().addAll(val, lbl);
         return box;
@@ -196,17 +244,17 @@ public class ResultsView {
 
                 Platform.runLater(() -> {
                     if (ok) {
-                        savingStatusLabel.setText("✓ Attempt saved to permanent SQLite history.");
-                        savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #10b981; -fx-font-weight: bold;");
+                        savingStatusLabel.setText("✓ Evaluation recorded in permanent SQLite database.");
+                        savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #34d399; -fx-font-weight: bold;");
                     } else {
                         savingStatusLabel.setText("⚠ Warning: Could not save attempt to SQLite.");
-                        savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #ef4444;");
+                        savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #fb7185;");
                     }
                 });
             } catch (Exception ex) {
                 Platform.runLater(() -> {
                     savingStatusLabel.setText("⚠ Error saving attempt: " + ex.getMessage());
-                    savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #ef4444;");
+                    savingStatusLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #fb7185;");
                 });
             }
         });

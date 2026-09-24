@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
-Test set: com.chronoquiz.db.SettingsDAOTest
+Test set: com.chronoquiz.model.QuizTest
 -------------------------------------------------------------------------------
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.103 s -- in com.chronoquiz.db.SettingsDAOTest
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in com.chronoquiz.model.QuizTest
