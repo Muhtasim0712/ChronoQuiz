@@ -36,7 +36,7 @@ ChronoQuiz is a high-precision, JavaFX-based desktop examination and quiz applic
 ---
 
 ## Default Credentials
-- **Admin Password**: `admin123`
+- **Admin Password**: `admin1234`
 
 ---
 
